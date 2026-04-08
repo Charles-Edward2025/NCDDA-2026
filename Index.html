@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Global Darts Pro - Master System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root { --yellow: #ffcc00; --bg: #000; --card: #121212; --red: #ff3b30; --border: #2c2c2e; --white: #ffffff; --green: #34c759; --dark-grey: #1c1c1e; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--white); margin: 0; padding: 10px; overflow-x: hidden; }
+        .hidden { display: none !important; }
+        #main-app { padding-bottom: 100px; }
+        #landing-page { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; min-height: 90vh; }
+        .menu-box { background: var(--card); border: 2px solid var(--yellow); padding: 40px; border-radius: 15px; width: 90%; max-width: 400px; text-align: center; cursor: pointer; transition: 0.3s; }
+        .menu-box:active { transform: scale(0.95); background: #1a1a1a; }
+        .menu-box h2 { color: var(--yellow); margin: 0 0 10px 0; font-size: 1.5rem; border: none; padding: 0; }
+        .menu-box p { color: #8e8e93; font-size: 0.9rem; margin: 0; }
+        .module { background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; max-width: 1000px; margin: auto; }
+        h2 { color: var(--yellow); text-transform: uppercase; border-left: 4px solid var(--red); padding-left: 10px; margin-bottom: 15px; font-size: 1.2rem; }
+        input, select, textarea { background: var(--dark-grey); color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 6px; width: 100%; font-size: 0.9rem; outline: none; }
+        label { font-size: 0.65rem; color: #8e8e93; font-weight: 700; margin-bottom: 3px; display: block; text-transform: uppercase; }
+        button { border: none; border-radius: 6px; font-weight: 700; text-transform: uppercase; cursor: pointer; }
+        .btn-yellow { background: var(--yellow); color: #000; padding: 10px; width: 100%; }
+        .btn-red { background: var(--red); color: #fff; padding: 6px 10px; font-size: 0.7rem; }
+        .btn-grey { background: var(--dark-grey); color: #fff; border: 1px solid var(--border); padding: 8px 12px; font-size: 0.8rem; }
+        .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .score-box { background: var(--dark-grey); border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; }
+        .score-box.active { border-color: var(--green); background: #0c1a0f; }
+        .team-name-sp { font-size: 1.2rem; font-weight: 900; margin-bottom: 2px; }
+        .big-score { font-size: 3.5rem; font-weight: 800; color: var(--yellow); font-family: monospace; margin: 2px 0; }
+        .start-toggle { width: 100%; padding: 5px; border-radius: 4px; margin-bottom: 8px; background: #333; color: #fff; font-size: 0.6rem; }
+        .active-start { background: var(--green); }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr) 1fr; gap: 8px; height: 320px; margin-top: 5px; }
+        .btn-num { background: var(--dark-grey); color: #fff; font-size: 1.8rem; border: 1px solid var(--border); }
+        .btn-ent { background: var(--yellow); color: #000; grid-row: span 3; font-size: 1.4rem; }
+        .fixture-row { display: grid; grid-template-columns: 1fr auto; align-items: center; background: var(--dark-grey); padding: 10px; border-radius: 6px; margin-bottom: 6px; border: 1px solid var(--border); }
+        .winner-highlight { border-color: var(--green) !important; background: rgba(52, 199, 89, 0.1) !important; }
+        .winner-label { color: var(--green); font-weight: 900; font-size: 0.7rem; display: block; }
+        .initial-box { width: 40px; height: 30px; border-radius: 4px; background: #000; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
+        .active-p { background: var(--yellow); color: #000; border-color: var(--yellow); }
+        #playerModal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; height: 85%; background: var(--card); border: 2px solid var(--yellow); border-radius: 15px; padding: 20px; z-index: 3000; overflow-y: auto; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2999; }
+        #dartPopup { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1c1c1e; border: 2px solid var(--yellow); padding: 20px; border-radius: 15px; z-index: 4000; width: 280px; text-align: center; box-shadow: 0 0 30px #000; }
+        .dart-btn { background: var(--yellow); color: #000; padding: 15px; margin-bottom: 10px; border-radius: 8px; font-weight: 900; width: 100%; border: none; font-size: 1rem; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.55rem; color: #fff; margin-top: 10px; }
+        th { background: #222; color: var(--yellow); padding: 5px; border: 1px solid #333; white-space: nowrap; }
+        td { border: 1px solid #333; padding: 5px; text-align: center; }
+        #top-save { position: sticky; top: 0; z-index: 5000; background: var(--card); padding: 10px 5px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .history-card { background: var(--dark-grey); border-left: 4px solid var(--yellow); padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+        .hist-item { padding: 8px; border-bottom: 1px solid #222; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .hist-detail-box { background: #000; padding: 8px; border-radius: 6px; border: 1px solid #333; margin-top: 5px; font-size: 0.75rem; line-height: 1.4; }
+        .bracket-grid { display: flex; gap: 20px; overflow-x: auto; padding: 20px 10px; min-height: 400px; }
+        .round-col { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 160px; }
+        .match-box-finals { background: var(--dark-grey); border: 1px solid var(--border); border-radius: 8px; padding: 2px; cursor: pointer; position: relative; }
+        .f-slot { height: 30px; line-height: 30px; padding: 0 8px; font-size: 0.7rem; border-bottom: 1px solid #222; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: flex; justify-content: space-between; }
+        .f-slot:last-child { border-bottom: none; }
+        .f-winner { color: var(--green); font-weight: bold; background: rgba(52, 199, 89, 0.1); }
+        .hist-side-box { display: flex; flex-direction: column; gap: 2px; width: 80px; font-size: 0.7rem; color: #8e8e93; font-family: monospace; border: 1px solid #222; border-radius: 4px; padding: 4px; background: #080808; justify-content: center; height: 50px; }
+        .hist-val { color: var(--white); font-weight: bold; border-bottom: 1px solid #1c1c1e; padding-bottom: 1px; }
+        .hist-val:last-child { border-bottom: none; }
+        .bottom-action-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px; z-index: 6000; }
+    </style>
+</head>
+<body>
+
+<div id="landing-page">
+    <div class="menu-box" onclick="handleMenuSelection('play')">
+        <h2>1. USER TO PLAY GAMES</h2>
+        <p>Start matches, record scores, and view leaderboards.</p>
+    </div>
+    <div class="menu-box" onclick="handleMenuSelection('create')">
+        <h2>2. CREATE TOURNAMENT</h2>
+        <p>Initialize association, format, and roster imports.</p>
+    </div>
+</div>
+
+<div id="main-app" class="hidden">
+<div id="top-save">
+    <div style="display:flex; gap:5px;">
+        <button class="btn-grey" onclick="showStep(6)">HUB</button>
+        <button class="btn-grey" onclick="openHistoryScreen()">HISTORY</button>
+    </div>
+    <div style="display:flex; gap:5px;">
+        <button class="btn-red" onclick="resetApp()" style="padding: 5px 10px;">RESET</button>
+        <button class="btn-yellow" onclick="saveData()" style="width: auto; padding: 5px 20px;">SAVE ALL</button>
+    </div>
+</div>
+
+<div id="step1" class="module">
+    <h2>League Initializer</h2>
+    <input type="text" id="tName" placeholder="ASSOCIATION NAME" style="margin-bottom: 20px; text-align: center;">
+    <button class="btn-yellow" onclick="validateStartSetup()">START SETUP</button>
+    <button class="btn-red" style="margin-top:20px; width:100%; opacity:0.6;" onclick="clearHistoryData()">WIPE ARCHIVES</button>
+    <button class="btn-grey" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK TO MENU</button>
+</div>
+
+<div id="step2" class="module hidden">
+    <h2>Step 2: Format & Slots</h2>
+    <div style="background: #1c1c1e; padding: 12px; border-radius: 12px; border: 1px solid #444; margin-bottom: 15px;">
+        <label style="color:var(--yellow); margin-bottom: 10px;">MATCH FORMAT SETUP</label>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+            <div><label>ROUNDS</label><input type="number" id="roundCount" value="1"></div>
+            <div><label>MAX GAMES PER PLAYER</label><input type="number" id="maxPlayerGames" value="3"></div>
+            <div><label>TOTAL MATCH GAMES</label><input type="number" id="gameCount" value="11" onchange="buildSlots()"></div>
+        </div>
+    </div>
+    <div id="slotContainer"></div>
+    <div style="display:flex; justify-content: space-between; margin-top:20px; gap:10px;">
+        <button class="btn-grey" onclick="showStep(1)">BACK</button>
+        <button class="btn-yellow" style="width:150px;" onclick="showStep(3)">NEXT</button>
+    </div>
+</div>
+
+<div id="step3" class="module hidden">
+    <h2>Step 3: Points Tally Setup</h2>
+    <div style="background: #1c1c1e; padding: 12px; border-radius: 12px; border: 1px solid var(--yellow); margin-bottom: 15px;">
+        <label style="color:var(--yellow); margin-bottom: 10px;">POINTS TABLE (LEAGUE STANDINGS)</label>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+            <div><label>WIN</label><input type="number" id="leagueWin" value="2"></div>
+            <div><label>DRAW</label><input type="number" id="leagueDraw" value="1"></div>
+            <div><label>LOSE</label><input type="number" id="leagueLoss" value="0"></div>
+            <div><label>PENALTY</label><input type="number" id="leaguePenalty" value="0" style="color:var(--red);"></div>
+        </div>
+    </div>
+    <div style="display:flex; justify-content: space-between; margin-top:20px; gap:10px;">
+        <button class="btn-grey" onclick="showStep(2)">BACK</button>
+        <button class="btn-yellow" style="width:150px;" onclick="showStep(4)">NEXT</button>
+    </div>
+</div>
+
+<div id="step4" class="module hidden">
+    <h2>Step 4: MVP & Skill Setup</h2>
+    <div style="background: #1c1c1e; padding: 12px; border-radius: 12px; border: 1px solid #444; margin-bottom: 15px;">
+        <label style="display:flex; align-items:center; gap:10px; color:var(--yellow); font-size:0.9rem; margin-bottom:15px; cursor:pointer; text-transform:none;">
+            <input type="checkbox" id="mvpMasterToggle" checked onchange="syncMVPSettings()" style="width:20px; height:20px;"> 
+            ENABLE MVP TRACKING
+        </label>
+        
+        <div id="mvpConfigBoxes">
+            <label style="color:var(--yellow); margin-bottom: 10px;">MVP MATCH WEIGHTS</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div><label>GAME WIN (MVP)</label><input type="number" id="ptsWin" value="2"></div>
+                <div><label>GAME LOSS (MVP)</label><input type="number" id="ptsLoss" value="0.5"></div>
+            </div>
+            <label style="color:var(--yellow); margin-top: 15px; display:block;">3-DART AVG MVP WEIGHTS (100+ / 80+ / 60+)</label>
+            <div style="display:flex; gap:5px; margin-bottom:10px;">
+                <input type="number" id="p3da100" value="3"><input type="number" id="p3da80" value="2"><input type="number" id="p3da60" value="1">
+            </div>
+            <label style="color:var(--yellow); display:block;">CHECKOUT POINTS (161 / 131 / 100 / 80 / 41 / 2)</label>
+            <div style="display:grid; grid-template-columns: repeat(6, 1fr); gap:5px;">
+                <input type="number" id="pc161" value="5"><input type="number" id="pc131" value="4"><input type="number" id="pc100" value="3">
+                <input type="number" id="pc80" value="2"><input type="number" id="pc41" value="1"><input type="number" id="pc2" value="0.5">
+            </div>
+        </div>
+    </div>
+    <div style="display:flex; justify-content: space-between; margin-top:20px; gap:10px;">
+        <button class="btn-grey" onclick="showStep(3)">BACK</button>
+        <button class="btn-yellow" style="width:150px;" onclick="showStep(5)">NEXT</button>
+    </div>
+</div>
+
+<div id="step5" class="module hidden">
+    <h2>Step 5: Roster Import</h2>
+    <div style="border: 2px dashed #444; text-align: center; padding: 15px; margin-bottom: 15px;">
+        <input type="file" id="excelFile" accept=".xlsx, .xls" style="margin-bottom:10px;">
+        <button class="btn-yellow" onclick="readExcel()">SYNC DATA</button>
+    </div>
+    <div style="background: var(--dark-grey); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+        <label>BATCH ADD PLAYERS (ONE NAME PER LINE)</label>
+        <textarea id="batchAddArea" style="height:120px; margin-bottom:8px;" placeholder="John Doe&#10;Jane Smith"></textarea>
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px;">
+            <select id="batchDivSelect"></select>
+            <select id="batchGen"><option value="M">Male</option><option value="F">Female</option></select>
+            <button class="btn-yellow" onclick="processBatchAdd()">APPEND</button>
+        </div>
+    </div>
+    <div id="importFeedback" style="text-align:center; margin-top:10px; color:var(--green); font-weight:bold;"></div>
+    <div style="display:flex; justify-content: space-between; margin-top:20px; gap:10px;">
+        <button class="btn-grey" onclick="showStep(4)">BACK</button>
+        <button class="btn-yellow" style="width:150px;" onclick="saveData(); showStep(6);">NEXT</button>
+    </div>
+</div>
+
+<div id="step6" class="module hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="hubTitle">Division Hub</h2>
+        <button class="btn-yellow" style="width:120px;" onclick="renderLeaderboards()">STANDINGS</button>
+    </div>
+    <div id="divisionHub"></div>
+    <button class="btn-yellow" style="margin-top:20px; background:var(--green); color:#000;" onclick="openFinalsGate()">FINALS BOXES</button>
+    <button class="btn-yellow" style="margin-top:10px;" onclick="generateMasterDraw()">GENERATE MASTER DRAW</button>
+    <button class="btn-grey" style="width:100%; margin-top:10px;" onclick="location.reload()">BACK TO MENU</button>
+</div>
+
+<div id="stepstats" class="module hidden">
+    <div id="tallyTable" style="overflow-x:auto;"></div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px; margin-top:20px;">
+        <select id="statGender" onchange="renderLeaderboards()"><option value="M">Male</option><option value="F">Female</option></select>
+        <select id="statCat" onchange="renderLeaderboards()">
+            <option value="Singles">Singles</option><option value="Doubles">Doubles</option>
+            <option value="Trebles">Trebles</option><option value="Quad">Quad</option>
+            <option value="Team">Team</option><option value="Overall">Overall</option>
+        </select>
+    </div>
+    <div id="playerTable" style="overflow-x:auto;"></div>
+    <button class="btn-grey" style="width:100%; margin-top:20px;" onclick="currentStatsDiv = null; showStep(6);">BACK TO HUB</button>
+</div>
+
+<div id="stepfinals-gate" class="module hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2>Finals Management</h2>
+        <button class="btn-grey" onclick="showStep(6)">BACK</button>
+    </div>
+    <div style="background: var(--dark-grey); padding: 15px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px;">
+        <label style="color:var(--yellow); margin-bottom:10px;">ADMIN OVERRIDES</label>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+            <label style="text-transform:none;"><input type="checkbox" id="fDisableStats"> DISABLE/RESET PLAYER STATS & MVP</label>
+            <label style="text-transform:none;"><input type="checkbox" id="fDisableTally"> DISABLE/RESET POINTS TALLY</label>
+        </div>
+    </div>
+    <label style="color:var(--yellow); margin-bottom:10px;">SELECT FINALS BRACKET</label>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:20px;">
+        <button class="btn-grey" onclick="initFinals(32)">TOP 32</button>
+        <button class="btn-grey" onclick="initFinals(16)">TOP 16</button>
+        <button class="btn-grey" onclick="initFinals(8)">TOP 8</button>
+        <button class="btn-grey" onclick="initFinals(4)">TOP 4</button>
+    </div>
+    <div id="finalsModeSection" class="hidden" style="text-align:center; padding:15px; border:1px dashed var(--yellow); border-radius:8px;">
+        <p style="font-size:0.8rem; margin-bottom:10px;">HOW SHOULD TEAMS BE ENTERED?</p>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-yellow" onclick="buildFinalsBracket('auto')">AUTOMATE (STANDINGS)</button>
+            <button class="btn-grey" onclick="buildFinalsBracket('manual')">MANUAL INPUT</button>
+        </div>
+    </div>
+</div>
+
+<div id="stepfinals-bracket" class="module hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 id="bracketTitle">Knockout Draw</h2>
+        <button class="btn-grey" onclick="showStep('finals-gate')">BACK</button>
+    </div>
+    <div id="finalsBracketContainer" class="bracket-grid"></div>
+</div>
+
+<div id="stepdraw" class="module hidden">
+    <h2>Master Draw</h2>
+    <div id="drawContainer"></div>
+    <button class="btn-grey" onclick="showStep(6)">BACK TO HUB</button>
+</div>
+
+<div id="stepallot" class="module hidden">
+    <h2 id="allotTitle" style="text-align:center;"></h2>
+    <div id="allotRows"></div>
+    <button class="btn-grey" id="allotBackBtn" onclick="showStep('draw')" style="width:100%; margin-top:10px;">BACK</button>
+</div>
+
+<div id="stephistory-full" class="module hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h2 id="historyTitle">Archives</h2>
+        <button class="btn-grey" id="historyBackBtn" onclick="historyBack()">BACK</button>
+    </div>
+    <div id="historyContent"></div>
+</div>
+
+<div id="stepscorepad" class="module hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-5px;">
+        <button class="btn-grey" style="padding:4px 8px;" onclick="showStep('allot')">EXIT</button>
+        <div id="spGameTitle" style="color:var(--yellow); font-weight:800; font-size:0.9rem;"></div>
+        <div style="width:40px;"></div>
+    </div>
+    <div class="score-grid">
+        <div id="hBox" class="score-box active">
+            <button id="hStartBtn" class="start-toggle active-start" onclick="setStarter('h')">FIRST THROW</button>
+            <div id="hTeamName" class="team-name-sp">HOME</div>
+            <div style="display:flex; justify-content:center; gap:15px; margin: 2px 0;">
+                <div><label>SETS</label><div id="hSets" style="font-weight:bold;">0</div></div>
+                <div><label>LEGS</label><div id="hLegs" style="font-weight:bold; color:var(--yellow);">0</div></div>
+            </div>
+            <div id="hScore" class="big-score">501</div>
+            <div id="hInitGrid" style="display:flex; justify-content:center; gap:4px;"></div>
+        </div>
+        <div id="aBox" class="score-box">
+            <button id="aStartBtn" class="start-toggle" onclick="setStarter('a')">FIRST THROW</button>
+            <div id="aTeamName" class="team-name-sp">AWAY</div>
+            <div style="display:flex; justify-content:center; gap:15px; margin: 2px 0;">
+                <div><label>SETS</label><div id="aSets" style="font-weight:bold;">0</div></div>
+                <div><label>LEGS</label><div id="aLegs" style="font-weight:bold; color:var(--yellow);">0</div></div>
+            </div>
+            <div id="aScore" class="big-score">501</div>
+            <div id="aInitGrid" style="display:flex; justify-content:center; gap:4px;"></div>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin:8px 0;">
+        <div id="hSideHist" class="hist-side-box"></div>
+        <div id="padDisplay" style="text-align:center; font-size:3rem; background:#000; height:60px; line-height:60px; color:var(--yellow); border:1px solid var(--border); font-family: monospace; width:150px;"></div>
+        <div id="aSideHist" class="hist-side-box"></div>
+    </div>
+    <div class="numpad">
+        <button class="btn-num" onclick="k(7)">7</button><button class="btn-num" onclick="k(8)">8</button><button class="btn-num" onclick="k(9)">9</button>
+        <button class="btn-ent" onclick="subScore()">ENT</button>
+        <button class="btn-num" onclick="k(4)">4</button><button class="btn-num" onclick="k(5)">5</button><button class="btn-num" onclick="k(6)">6</button>
+        <button class="btn-num" onclick="k(1)">1</button><button class="btn-num" onclick="k(2)">2</button><button class="btn-num" onclick="k(3)">3</button>
+        <button class="btn-num" style="font-size:0.7rem;" onclick="clr()">CLR</button><button class="btn-num" onclick="k(0)">0</button><button class="btn-num" style="font-size:0.7rem;" onclick="undo()">UNDO</button>
+    </div>
+</div>
+
+<div class="bottom-action-bar">
+    <button onclick="setAccessRole()" style="background: #9b59b6; color: white; padding: 8px; border-radius: 6px; width: 30%; font-size: 0.7rem;">👤 ROLE: <span id="displayRole">User</span></button>
+    <button onclick="syncLocalDataToCloud()" style="background: #2ecc71; color: white; padding: 8px; border-radius: 6px; width: 30%; font-size: 0.7rem;">☁️ CLOUD SYNC</button>
+    <button onclick="recoverDataFromCloud()" style="background: #3498db; color: white; padding: 8px; border-radius: 6px; width: 30%; font-size: 0.7rem;">📥 RECOVER</button>
+</div>
+
+<div id="modalOverlay" class="modal-overlay hidden"></div>
+<div id="playerModal" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 id="modalTeamName" style="margin:0;"></h2>
+        <button class="btn-red" onclick="closePlayerModal()">CLOSE</button>
+    </div>
+    <div id="modalPlayerList"></div>
+    <div style="margin-top:20px; border-top: 1px solid #444; padding-top:15px;">
+        <label>ADD MANUAL PLAYER</label>
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="manualPName" placeholder="Full Name" style="margin:0;">
+            <select id="manualPGen" style="width:70px; margin:0;"><option value="M">M</option><option value="F">F</option></select>
+            <button class="btn-yellow" onclick="addManualPlayer()" style="width:60px;">ADD</button>
+        </div>
+    </div>
+</div>
+
+<div id="dartPopup" class="hidden">
+    <h3 style="color:var(--yellow); margin-top:0;">CHECKOUT DART?</h3>
+    <button id="dartBtn1" class="dart-btn" onclick="confirmCheckout(1)">1st DART</button>
+    <button id="dartBtn2" class="dart-btn" onclick="confirmCheckout(2)">2nd DART</button>
+    <button id="dartBtn3" class="dart-btn" onclick="confirmCheckout(3)">3rd DART</button>
+    <button class="btn-red" style="width:100%;" onclick="closeDartPopup()">CANCEL</button>
+</div>
+
+</div> 
+<script>
+    const SUPABASE_URL = 'https://tygegztjluaevqsdcinl.supabase.co';
+    const SUPABASE_KEY =' eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR5Z2VnenRqbHVhZXZxc2RjaW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNDM3NjQsImV4cCI6MjA4NzcxOTc2NH0.5PM4it9ebn_ejNb64oZzy73qxcsDbgFCSUc03qmAMaw'; 
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); 
+    let currentUserRole = 'User';
+
+    function handleMenuSelection(choice) {
+        document.getElementById('landing-page').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        
+        if (choice === 'play') {
+            showStep(6);
+        } else if (choice === 'create') {
+            showStep(1);
+        }
+    }
+
+    let globalData = { divs: {} }, playerUsage = {}, lockedGames = {}, matchScores = {}, activeDiv = '', activeTeam = null;
+    let pointsTally = {}; 
+    let playerStats = { M: {}, F: {} };
+    let matchArchive = {}; 
+    let histState = { level: 'matches', matchKey: null };
+    let gameTracker = { h: {}, a: {} };
+    let cur = { h:[], a:[], hs:0, as:0, hSets:0, aSets:0, hLegs:0, aLegs:0, sSc:0, turn:'h', hIdx:0, aIdx:0, maxLegs:1, maxSets:1, gameIdx: null, t1Name:'', t2Name:'', gn:'', hTeamDarts:0, aTeamDarts:0 };
+    let historyLog = { h: [], a: [] }; 
+    let tempVal = 0;
+    let currentStatsDiv = null;
+    let historyStack = [];
+    let allottedPlayers = {};
+    let knockoutData = []; 
+    let activeFinalMatch = null;
+    let finalsBracketSize = 0;
+
+    function saveData() {
+        const mvpOn = document.getElementById('mvpMasterToggle').checked;
+        let currentStep = '6'; 
+        document.querySelectorAll('.module').forEach(m => {
+            if(!m.classList.contains('hidden')) currentStep = m.id.replace('step', '');
+        });
+        const bundle = { 
+            globalData, playerUsage, lockedGames, matchScores, pointsTally, 
+            playerStats, matchArchive, allottedPlayers, mvpOn, knockoutData, 
+            finalsBracketSize, currentStep, cur, historyLog, gameTracker 
+        };
+        localStorage.setItem('dartsMasterSave', JSON.stringify(bundle));
+    }
+
+    window.onload = () => {
+        const saved = localStorage.getItem('dartsMasterSave');
+        if (saved) {
+            const data = JSON.parse(saved);
+            globalData = data.globalData || { divs: {} };
+            playerUsage = data.playerUsage || {};
+            lockedGames = data.lockedGames || {};
+            matchScores = data.matchScores || {};
+            pointsTally = data.pointsTally || {};
+            playerStats = data.playerStats || { M: {}, F: {} };
+            matchArchive = data.matchArchive || {};
+            allottedPlayers = data.allottedPlayers || {};
+            knockoutData = data.knockoutData || [];
+            finalsBracketSize = data.finalsBracketSize || 0;
+            if (data.cur) cur = data.cur;
+            if (data.historyLog) historyLog = data.historyLog;
+            if (data.gameTracker) gameTracker = data.gameTracker;
+            if (data.mvpOn !== undefined) document.getElementById('mvpMasterToggle').checked = data.mvpOn;
+            if (Object.keys(globalData.divs).length > 0) {
+                const bDiv = document.getElementById('batchDivSelect');
+                if(bDiv) bDiv.innerHTML = Object.keys(globalData.divs).map(d => `<option value="${d}">${d}</option>`).join('');
+                if(data.currentStep) {
+                    document.getElementById('landing-page').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    showStep(data.currentStep);
+                    if(data.currentStep === 'scorepad') updateSP();
+                }
+            }
+        }
+        syncMVPSettings();
+        buildSlots();
+    };
+
+    function validateStartSetup() {
+        const name = document.getElementById('tName').value.trim();
+        if(!name) { alert("Association name not written! Please enter a name to proceed."); return; }
+        showStep(2);
+    }
+
+    function renderDivisionHub() { 
+        const hub = document.getElementById('divisionHub'); hub.innerHTML = ""; 
+        const bDiv = document.getElementById('batchDivSelect'); bDiv.innerHTML = "";
+        Object.keys(globalData.divs).forEach(div => { 
+            bDiv.innerHTML += `<option value="${div}">${div}</option>`;
+            hub.innerHTML += `<div style="background:var(--yellow); color:#000; padding:6px; font-weight:900; border-radius:4px; margin: 15px 0 8px 0;">${div}</div>`; 
+            Object.keys(globalData.divs[div]).forEach(team => { 
+                const teamData = globalData.divs[div][team];
+                if (pointsTally[team] && pointsTally[team].status === 'archived') return;
+                let pCount = Array.isArray(teamData) ? teamData.length : 0;
+                let statusColor = (pCount >= 5 && pCount <= 8) ? 'var(--green)' : 'var(--red)';
+                hub.innerHTML += `<div class="fixture-row" onclick="openTeamManager('${div}','${team}')" style="border-left: 5px solid ${statusColor};">
+                    <span>${team} (${pCount} Players)</span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn-yellow" style="font-size:0.6rem; padding:4px 8px;" onclick="event.stopPropagation(); replaceTeamPrompt('${div}','${team}')">REPLACE</button>
+                        <button class="btn-red" onclick="event.stopPropagation(); archiveTeam('${div}','${team}')">REMOVE</button>
+                    </div>
+                </div>`; 
+            }); 
+        }); 
+    }
+
+    function archiveTeam(div, teamName) {
+        if(!confirm(`Archive ${teamName}? Points stay in history (hidden) but team is removed from hub/draw.`)) return;
+        if (!pointsTally[teamName]) pointsTally[teamName] = { mp:0, bye:0, win:0, lose:0, for:0, ag:0, pts:0 };
+        pointsTally[teamName].status = 'archived';
+        saveData();
+        renderDivisionHub();
+    }
+
+    function replaceTeamPrompt(div, oldTeamName) {
+        const choice = prompt(`How do you want to replace ${oldTeamName}?\n1: NEW TEAM (Name replacement)\n2: BYE (Awards 2 pts and archives)`);
+        if (choice === "1") {
+            const newTeamName = prompt(`Enter name for NEW team replacing ${oldTeamName}:`);
+            if (!newTeamName) return;
+            const inherit = confirm(`Inherit points from ${oldTeamName}?\n\nOK = Yes\nCancel = Start Fresh (0)`);
+            globalData.divs[div][newTeamName] = [...globalData.divs[div][oldTeamName]]; 
+            if (inherit) {
+                pointsTally[newTeamName] = { ...pointsTally[oldTeamName], status: 'active' };
+            } else {
+                pointsTally[newTeamName] = { mp:0, bye:0, win:0, lose:0, for:0, ag:0, pts:0, status: 'active' };
+            }
+            if (pointsTally[oldTeamName]) pointsTally[oldTeamName].status = 'archived';
+            delete globalData.divs[div][oldTeamName];
+            saveData(); renderDivisionHub(); openTeamManager(div, newTeamName);
+        } else if (choice === "2") {
+            if (!confirm(`Confirm replacing ${oldTeamName} with a BYE?\nTeam will get 2 points and be archived.`)) return;
+            if (!pointsTally[oldTeamName]) pointsTally[oldTeamName] = { mp:0, bye:0, win:0, lose:0, for:0, ag:0, pts:0 };
+            pointsTally[oldTeamName].bye = (pointsTally[oldTeamName].bye || 0) + 1;
+            pointsTally[oldTeamName].pts += 2; 
+            pointsTally[oldTeamName].status = 'archived';
+            saveData(); renderDivisionHub();
+            alert(`${oldTeamName} replaced with BYE (+2 pts recorded).`);
+        }
+    }
+
+    function generateMasterDraw() {
+        showStep('draw'); const cont = document.getElementById('drawContainer'); cont.innerHTML = "";
+        const rounds = parseInt(document.getElementById('roundCount').value) || 1; 
+        const totalG = parseInt(document.getElementById('gameCount').value); 
+        const winThreshold = Math.ceil((totalG + 1) / 2);
+        Object.keys(globalData.divs).forEach(div => {
+            let teams = Object.keys(globalData.divs[div]).filter(t => !pointsTally[t] || pointsTally[t].status !== 'archived'); 
+            if (teams.length % 2 !== 0) teams.push("BYE"); 
+            const n = teams.length;
+            for (let r = 0; r < rounds; r++) {
+                let tempTeams = [...teams];
+                for (let week = 0; week < n - 1; week++) {
+                    let weekHeaderAdded = false;
+                    for (let i = 0; i < n / 2; i++) {
+                        let t1 = tempTeams[i], t2 = tempTeams[n - 1 - i];
+                        if (t1 !== "BYE" && t2 !== "BYE") {
+                            if (!weekHeaderAdded) {
+                                cont.innerHTML += `<div style="margin-top:15px; border-bottom:1px solid #333; padding-bottom:5px;"><b style="font-size:0.8rem; color:var(--yellow);">ROUND ${r + 1} WK ${week + 1} - ${div}</b></div>`;
+                                weekHeaderAdded = true;
+                            }
+                            const mKey = t1 + t2; 
+                            const score = matchScores[mKey] || {h:0, a:0}; 
+                            const isOver = (score.h >= winThreshold || score.a >= winThreshold || score.pointsAwarded);
+                            const hWin = score.h > score.a, aWin = score.a > score.h;
+                            cont.innerHTML += `<div class="fixture-row ${isOver ? 'winner-highlight' : ''}">
+                                <div style="display:flex; flex-direction:column;">
+                                    <span style="font-weight:bold;"><span style="${hWin && isOver ? 'color:var(--green)' : ''}">${t1}</span> v <span style="${aWin && isOver ? 'color:var(--green)' : ''}">${t2}</span></span>
+                                    <span style="font-size:0.7rem; color:var(--yellow);">${score.h} - ${score.a}</span>
+                                    ${isOver ? `<span class="winner-label">WINNER: ${hWin ? t1 : t2}</span>` : ''}
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                    ${isOver ? `<button class="btn-grey" style="font-size:0.65rem;" onclick="openAllot('${t1}','${t2}','${div}')">VIEW</button>` : 
+                                    `<button class="btn-yellow" style="width:60px; font-size:0.6rem;" onclick="openAllot('${t1}','${t2}','${div}')">START</button>
+                                     <button class="btn-red" style="padding:4px 8px; font-size:0.6rem;" onclick="applyFW('${t1}','${t2}')">FW</button>`}
+                                </div>
+                            </div>`;
+                        }
+                    }
+                    tempTeams.splice(1, 0, tempTeams.pop());
+                }
+            }
+        });
+    }
+
+    function renderLeaderboards() {
+        showStep('stats'); 
+        const tallyTable = document.getElementById('tallyTable');
+        const playerTable = document.getElementById('playerTable');
+        if (!currentStatsDiv) { 
+            tallyTable.innerHTML = `<div style="text-align:center; padding:20px;"><h2 style="color:var(--yellow); margin-bottom:20px; border:none;">SELECT DIVISION</h2><div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">${Object.keys(globalData.divs).map(div => `<button class="btn-yellow" style="padding:25px; font-size:1.1rem; font-weight:900;" onclick="currentStatsDiv='${div}'; renderLeaderboards();">${div}</button>`).join('')}</div></div>`; 
+            playerTable.innerHTML = ""; return; 
+        }
+        let controls = `<div style="display:flex; gap:8px; margin-bottom:15px;"><button class="btn-grey" style="flex:2; border:1px solid var(--yellow);" onclick="currentStatsDiv=null; renderLeaderboards();">🔄 SWITCH DIVISION (${currentStatsDiv})</button><button class="btn-yellow" style="flex:1;" onclick="saveData()">SAVE</button></div>`;
+        const w3da100 = parseFloat(document.getElementById('p3da100').value) || 3, w3da80 = parseFloat(document.getElementById('p3da80').value) || 2, w3da60 = parseFloat(document.getElementById('p3da60').value) || 1;
+        let teams = Object.keys(pointsTally)
+            .filter(t => globalData.divs[currentStatsDiv] && (globalData.divs[currentStatsDiv][t] || pointsTally[t].status === 'archived'))
+            .map(t => ({ name: t, ...pointsTally[t] }));
+        teams.sort((a, b) => b.pts - a.pts || (b.for - b.ag) - (a.for - a.ag));
+        let tallyHtml = controls + `<table><tr><th>TEAM</th><th>MP</th><th>BYE</th><th>W</th><th>L</th><th>FOR</th><th>AG</th><th>DIFF</th><th>PTS</th></tr>`;
+        teams.forEach(tr => { tallyHtml += `<tr><td style="text-align:left; font-weight:bold;">${tr.name}</td><td>${tr.mp}</td><td>${tr.bye||0}</td><td>${tr.win}</td><td>${tr.lose}</td><td>${tr.for}</td><td>${tr.ag}</td><td>${tr.for-tr.ag}</td><td style="color:var(--yellow); font-weight:bold;">${tr.pts}</td></tr>`; });
+        tallyTable.innerHTML = tallyHtml + `</table>`;
+        let g = document.getElementById('statGender').value, c = document.getElementById('statCat').value, players = [];
+        for(let p in playerStats[g]) { 
+            if (playerStats[g][p].div === currentStatsDiv) { 
+                let s = playerStats[g][p][c]; if (!s || s.mp === 0) continue;
+                let avg3DAVal = s.totalDartsThrown > 0 ? ((s.totalPointsScored / s.totalDartsThrown) * 3) : 0;
+                let weight3DA = (avg3DAVal >= 100) ? w3da100 : (avg3DAVal >= 80) ? w3da80 : (avg3DAVal >= 60) ? w3da60 : 0;
+                let mvpVal = ((s.mvpTotal + weight3DA) / s.mp).toFixed(2);
+                let winPct = ((s.w / s.mp) * 100).toFixed(0) + "%";
+                let total100sCount = (s.s100 || 0) + (s.s140 || 0) + (s.s180 || 0);
+                let bestLabel = (s.best === 99 || s.best === 0) ? "-" : s.best;
+                players.push({ name: p, ...s, winPct, total100sCount, avg3DA: avg3DAVal.toFixed(2), mvpVal, bestLabel }); 
+            } 
+        }
+        players.sort((a, b) => b.mvpVal - a.mvpVal);
+        let pHtml = `<table><tr><th>PLAYER</th><th>Mp</th><th>Wins</th><th>Loses</th><th>Win%</th><th>100</th><th>140</th><th>180</th><th>Total 100s</th><th>High check</th><th>180 start</th><th>Best leg</th><th>3DA</th><th>Mvp</th></tr>`;
+        players.forEach(p => { pHtml += `<tr><td style="text-align:left;">${p.name}</td><td>${p.mp}</td><td>${p.w}</td><td>${p.l}</td><td>${p.winPct}</td><td>${p.s100}</td><td>${p.s140}</td><td>${p.s180}</td><td>${p.total100sCount}</td><td>${p.hc||0}</td><td>${p.hs180Count || 0}</td><td>${p.bestLabel}</td><td>${p.avg3DA}</td><td style="background:var(--yellow); color:#000; font-weight:bold;">${p.mvpVal}</td></tr>`; });
+        playerTable.innerHTML = pHtml + `</table>`;
+    }
+
+    function updateFinalStats(hWin, isForfeit = false, hasPlayers = true) {
+        const mvpOn = document.getElementById('mvpMasterToggle').checked; 
+        const totalMatchGames = parseInt(document.getElementById('gameCount').value) || 11; 
+        const winThreshold = Math.ceil((totalMatchGames + 1) / 2); 
+        const lWinVal = parseFloat(document.getElementById('leagueWin').value), lLossVal = parseFloat(document.getElementById('leagueLoss').value); 
+        const mvpWin = parseFloat(document.getElementById('ptsWin').value), mvpLoss = isForfeit ? 0 : (parseFloat(document.getElementById('ptsLoss').value) || 0.5);
+        if(hasPlayers) {
+            let count = cur.h.length, cat = count === 1 ? "Singles" : count === 2 ? "Doubles" : count === 3 ? "Trebles" : count === 4 ? "Quad" : "Team";
+            [...cur.h, ...cur.a].forEach(p => {
+                let isH = cur.h.some(x => x.name === p.name); 
+                let isPWin = (isH && hWin) || (!isH && !hWin); 
+                let gender = playerStats['M'][p.name] ? 'M' : 'F';
+                [playerStats[gender][p.name][cat], playerStats[gender][p.name]['Overall']].forEach(st => { 
+                    st.mp++; if (isPWin) st.w++; else st.l++; 
+                    if(mvpOn) st.mvpTotal += isPWin ? mvpWin : mvpLoss; 
+                });
+            });
+        }
+        const hT = pointsTally[cur.t1Name], aT = pointsTally[cur.t2Name]; if(!hT || !aT) return; 
+        hWin ? (hT.for++, aT.ag++) : (aT.for++, hT.ag++);
+        const mKey = cur.t1Name + cur.t2Name;
+        if (!matchScores[mKey].pointsAwarded) {
+            if (matchScores[mKey].h >= winThreshold || matchScores[mKey].a >= winThreshold) {
+                hT.mp++; aT.mp++;
+                if (matchScores[mKey].h >= winThreshold) { 
+                    hT.win++; hT.pts += lWinVal; aT.lose++; aT.pts += (isForfeit ? 0 : lLossVal); 
+                } else { 
+                    aT.win++; aT.pts += lWinVal; hT.lose++; hT.pts += (isForfeit ? 0 : lLossVal); 
+                }
+                matchScores[mKey].pointsAwarded = true;
+            }
+        }
+        saveData();
+    }
+
+    function confirmCheckout(dart) {
+        if (dart === 1) {
+            const forbiddenD1 = [3, 5, 41, 81];
+            if (forbiddenD1.includes(tempVal)) { alert(`Checkout ${tempVal} cannot be checked by Dart 1.`); return; }
+            const isAllowedD1 = (tempVal % 2 === 0 && tempVal <= 40) || tempVal === 50;
+            if (!isAllowedD1) { alert(`Checkout ${tempVal} is invalid for Dart 1.`); return; }
+        }
+        if (dart === 2) {
+            const restrictedD2 = [99, 102, 103, 105, 106, 108, 109];
+            if (restrictedD2.includes(tempVal) || (tempVal >= 111 && tempVal <= 170)) { alert(`Checkout ${tempVal} is invalid for Dart 2.`); return; }
+        }
+        if (tempVal >= 111 && (dart === 1 || dart === 2)) {
+            alert("Checkouts of 111+ must use 3 darts.");
+            return;
+        }
+        let exactDarts = (cur.turn === 'h' ? cur.hTeamDarts : cur.aTeamDarts) + dart; 
+        let winners = cur.turn === 'h' ? cur.h : cur.a;
+        let finisher = cur.turn === 'h' ? cur.h[cur.hIdx] : cur.a[cur.aIdx];
+        winners.forEach(pRef => {
+            let gender = playerStats['M'][pRef.name] ? 'M' : 'F';
+            let cat = cur.h.length === 1 ? 'Singles' : cur.h.length === 2 ? 'Doubles' : cur.h.length === 3 ? 'Trebles' : cur.h.length === 4 ? 'Quad' : 'Team';
+            let s = playerStats[gender][pRef.name][cat], ov = playerStats[gender][pRef.name]['Overall'];
+            [s, ov].forEach(st => { if (st.best === 99 || st.best === 0 || exactDarts < st.best) st.best = exactDarts; if (pRef.name === finisher.name && tempVal > (st.hc || 0)) st.hc = tempVal; });
+            if (pRef.name === finisher.name) gameTracker[cur.turn][pRef.name].hc = tempVal;
+        });
+        if(document.getElementById('mvpMasterToggle').checked) {
+            let cp = (tempVal >= 161) ? 5 : (tempVal >= 131) ? 4 : (tempVal >= 100) ? 3 : (tempVal >= 80) ? 2 : (tempVal >= 41) ? 1 : 0.5;
+            let fGen = playerStats['M'][finisher.name] ? 'M' : 'F';
+            let fCat = cur.h.length === 1 ? 'Singles' : cur.h.length === 2 ? 'Doubles' : cur.h.length === 3 ? 'Trebles' : cur.h.length === 4 ? 'Quad' : 'Team';
+            [playerStats[fGen][finisher.name][fCat], playerStats[fGen][finisher.name]['Overall']].forEach(st => st.mvpTotal += cp);
+        }
+        cur.turn==='h'?cur.hLegs++:cur.aLegs++; closeDartPopup(); checkLeg();
+    }
+
+    function subScore() {
+        let valText = document.getElementById('padDisplay').innerText || 0;
+        let val = parseInt(valText);
+        let sKey = cur.turn==='h'?'hs':'as';
+        historyStack.push(JSON.parse(JSON.stringify({cur, historyLog}))); 
+        let pInit = cur.turn === 'h' ? cur.h[cur.hIdx].initials : cur.a[cur.aIdx].initials;
+        historyLog[cur.turn].unshift(`${pInit}: ${val}`);
+        if(historyLog[cur.turn].length > 2) historyLog[cur.turn].pop();
+        let pRef = cur.turn === 'h' ? cur.h[cur.hIdx] : cur.a[cur.aIdx];
+        let gender = playerStats['M'][pRef.name] ? 'M' : 'F';
+        let cat = cur.h.length === 1 ? 'Singles' : cur.h.length === 2 ? 'Doubles' : cur.h.length === 3 ? 'Trebles' : cur.h.length === 4 ? 'Quad' : 'Team';
+        let s = playerStats[gender][pRef.name][cat], ov = playerStats[gender][pRef.name]['Overall'], localT = gameTracker[cur.turn][pRef.name];
+        if (val === 180) { [s, ov].forEach(st => st.s180++); localT.s180++; } 
+        else if (val >= 140) { [s, ov].forEach(st => st.s140++); localT.s140++; } 
+        else if (val >= 100) { [s, ov].forEach(st => st.s100++); localT.s100++; }
+        [s, ov].forEach(st => { st.totalPointsScored += val; st.totalDartsThrown += 3; });
+        localT.totalPointsScored += val; localT.totalDartsThrown += 3;
+        if (!localT.hasThrown) { localT.hs = val; localT.hasThrown = true; if (val === 180) { [s, ov].forEach(st => st.hs180Count++); } }
+        if (val > (localT.hsc || 0)) localT.hsc = val;
+        if(cur[sKey]-val === 0) { 
+            tempVal = val; 
+            document.getElementById('modalOverlay').classList.remove('hidden'); 
+            document.getElementById('dartPopup').classList.remove('hidden'); 
+        } else if(val > cur[sKey] || cur[sKey]-val===1) { 
+            if (cur.turn === 'h') cur.hTeamDarts += 3; else cur.aTeamDarts += 3; 
+            alert("BUST"); nextT(); 
+        } else { 
+            if (cur.turn === 'h') cur.hTeamDarts += 3; else cur.aTeamDarts += 3; 
+            cur[sKey] -= val; nextT(); 
+        } 
+        clr(); saveData();
+    }
+
+    function forfeitIndividualGame(idx, t1, t2) {
+        const mKey = t1 + t2; const gn = document.getElementById(`gn-${idx}`).value || "Individual Game"; 
+        const winnerChoice = prompt(`Select team for FORFEIT WIN:\n1: ${t1}\n2: ${t2}`); if (!winnerChoice) return;
+        const isHWin = winnerChoice === "1"; let hI = [], aI = [], hasPlayers = true;
+        let pc = parseInt(document.getElementById(`gp-${idx}`).value);
+        for(let j=0; j<pc; j++) {
+            let hsElement = document.getElementById(`h-${idx}-${j}-${mKey}`), asElement = document.getElementById(`a-${idx}-${j}-${mKey}`);
+            let hs = hsElement.value, as = asElement.value;
+            if(!hs || !as) { hasPlayers = false; break; }
+            hI.push({name: hs}); aI.push({name: as});
+            allottedPlayers[`h-${idx}-${j}-${mKey}`] = hs; allottedPlayers[`a-${idx}-${j}-${mKey}`] = as;
+        }
+        matchScores[mKey][isHWin ? 'h' : 'a']++; 
+        lockedGames[idx + t1 + t2] = isHWin ? "H_Win" : "A_Win"; 
+        if(!matchArchive[t1 + " vs " + t2]) matchArchive[t1 + " vs " + t2] = [];
+        matchArchive[t1 + " vs " + t2].push({ gameName: gn, winner: isHWin ? t1 : t2, isFW: true });
+        cur.t1Name = t1; cur.t2Name = t2; cur.h = hI; cur.a = aI;
+        
+        [...hI, ...aI].forEach(p => playerUsage[p.name] = (playerUsage[p.name] || 0) + 1);
+
+        updateFinalStats(isHWin, true, hasPlayers); saveData(); openAllot(t1, t2, activeDiv);
+    }
+
+    function applyFW(t1, t2) {
+        const winner = prompt(`Select team for FULL MATCH FORFEIT (11-0):\n1: ${t1}\n2: ${t2}`); if (!winner) return;
+        const winN = winner === "1" ? t1 : t2, loseN = winner === "1" ? t2 : t1, totalG = 11;
+        if (confirm(`Award ${winN} an 11-0 Win and 2 League Points?`)) {
+            const hT = pointsTally[winN], aT = pointsTally[loseN];
+            hT.mp++; hT.win++; hT.for += totalG; hT.pts += parseFloat(document.getElementById('leagueWin').value);
+            aT.mp++; aT.lose++; aT.ag += totalG; aT.pts += 0; 
+            for(let i=0; i<totalG; i++) lockedGames[i+t1+t2] = winner === "1" ? "H_Win" : "A_Win";
+            matchArchive[t1 + " vs " + t2] = [{ gameName: "Match Forfeit", winner: winN, isFW: true }];
+            const mKey = t1 + t2; matchScores[mKey] = {h: totalG, a: 0, pointsAwarded: true};
+            saveData(); generateMasterDraw(); alert("Forfeit Recorded.");
+        }
+    }
+
+    function showStep(s) { document.querySelectorAll('.module').forEach(m => m.classList.add('hidden')); const target = document.getElementById('step' + s) || document.getElementById('step-' + s); if (target) { target.classList.remove('hidden'); if (s == 6) renderDivisionHub(); window.scrollTo(0,0); } }
+    function syncMVPSettings() { document.getElementById('mvpConfigBoxes').style.display = document.getElementById('mvpMasterToggle').checked ? 'block' : 'none'; }
+    function openFinalsGate() { showStep('finals-gate'); }
+    function initFinals(size) { finalsBracketSize = size; document.getElementById('finalsModeSection').classList.remove('hidden'); }
+    
+    function buildFinalsBracket(mode) {
+        const cont = document.getElementById('finalsBracketContainer'); cont.innerHTML = ""; knockoutData = []; let standings = [];
+        if(mode === 'auto') standings = Object.keys(pointsTally).filter(t => pointsTally[t].status !== 'archived').map(t => ({ name: t, pts: pointsTally[t].pts })).sort((a, b) => b.pts - a.pts);
+        let rounds = Math.log2(finalsBracketSize);
+        for(let r=0; r <= rounds; r++) {
+            let matchCount = finalsBracketSize / Math.pow(2, r+1); if(matchCount < 0.5) break;
+            let col = document.createElement('div'); col.className = 'round-col'; col.innerHTML = `<div style="text-align:center; font-size:0.6rem; color:var(--yellow); font-weight:bold;">ROUND ${r+1}</div>`;
+            let roundMatches = [];
+            for(let m=0; m < matchCount; m++) {
+                let t1 = (r === 0 && mode === 'auto' && standings[m]) ? standings[m].name : "TBD", t2 = (r === 0 && mode === 'auto' && standings[finalsBracketSize-1-m]) ? standings[finalsBracketSize-1-m].name : "TBD";
+                let matchDiv = document.createElement('div'); matchDiv.className = 'match-box-finals'; matchDiv.id = `r${r}m${m}`; matchDiv.onclick = () => startFinalsMatch(r, m);
+                matchDiv.innerHTML = `<div class="f-slot" id="r${r}m${m}h">${t1}</div><div class="f-slot" id="r${r}m${m}a">${t2}</div>`;
+                col.appendChild(matchDiv); roundMatches.push({ t1, t2, win: null });
+            }
+            knockoutData.push(roundMatches); cont.appendChild(col);
+        }
+        showStep('finals-bracket'); saveData();
+    }
+    
+    function startFinalsMatch(r, m) {
+        let t1 = document.getElementById(`r${r}m${m}h`).innerText, t2 = document.getElementById(`r${r}m${m}a`).innerText;
+        if(t1 === "TBD" || t2 === "TBD") return alert("Waiting for previous round winners.");
+        activeFinalMatch = { r, m }; let firstDiv = Object.keys(globalData.divs)[0];
+        document.getElementById('allotBackBtn').onclick = () => showStep('finals-bracket'); openAllot(t1, t2, firstDiv);
+    }
+
+    function processBatchAdd() {
+        const text = document.getElementById('batchAddArea').value.trim(), div = document.getElementById('batchDivSelect').value, gen = document.getElementById('batchGen').value;
+        if(!text || !div) return alert("Select Division and add names.");
+        text.split('\n').filter(l => l.trim() !== "").forEach(name => {
+            let team = Object.keys(globalData.divs[div])[0] || "Team 1";
+            if(!globalData.divs[div][team]) globalData.divs[div][team] = [];
+            globalData.divs[div][team].push({name: name.trim(), gender: gen, initials: name.trim().split(' ').map(x=>x[0]).join('').toUpperCase()});
+            initStatRefs(team, name.trim(), gen, div);
+        });
+        document.getElementById('batchAddArea').value = ""; document.getElementById('importFeedback').innerText = "APPENDED"; saveData();
+    }
+
+    function resetApp() { if(confirm("Delete ALL DATA?")) { localStorage.removeItem('dartsMasterSave'); location.reload(); } }
+    function clearHistoryData() { if(confirm("WIPE ARCHIVES?")) { matchArchive = {}; saveData(); alert("History Cleared."); } }
+    function openHistoryScreen() { showStep('history-full'); renderHistoryMatches(); }
+    function renderHistoryMatches() { histState.level = 'matches'; document.getElementById('historyTitle').innerText = "Archives"; const cont = document.getElementById('historyContent'); cont.innerHTML = ""; for (let mKey in matchArchive) cont.innerHTML += `<div class="history-card" onclick="renderHistoryGames('${mKey}')"><div style="font-weight:900; color:var(--yellow); font-size:1rem;">${mKey}</div></div>`; }
+    function renderHistoryGames(mKey) { histState.level = 'games'; histState.matchKey = mKey; document.getElementById('historyTitle').innerText = mKey; const cont = document.getElementById('historyContent'); cont.innerHTML = ""; matchArchive[mKey].forEach((game, idx) => { cont.innerHTML += `<div class="fixture-row hist-item" onclick="renderHistoryDetail(${idx})"><span>${idx + 1}. ${game.gameName}</span><span style="color:var(--yellow);">${game.winner} Won</span></div>`; }); }
+    function renderHistoryDetail(idx) {
+        const game = matchArchive[histState.matchKey][idx]; document.getElementById('historyTitle').innerText = game.gameName;
+        const calc3DA = (p) => p.totalDartsThrown > 0 ? ((p.totalPointsScored / p.totalDartsThrown) * 3).toFixed(2) : "0.00";
+        const formatPlayerBlock = (p) => `<div class="hist-detail-box"><b style="color:var(--yellow);">${p.name}</b><br><div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px; font-size:0.65rem;"><span>High start: ${p.hs || '-'}</span><span>High score: ${p.hsc || '-'}</span><span>High check: ${p.hc || '-'}</span><span>100s: ${p.s100 || 0}</span><span>140s: ${p.s140 || 0}</span><span>180s: ${p.s180 || 0}</span><span>3DA: ${calc3DA(p)}</span></div></div>`;
+        document.getElementById('historyContent').innerHTML = `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;"><div><label>HOME</label>${game.hLineup ? game.hLineup.map(formatPlayerBlock).join('') : 'N/A'}</div><div><label>AWAY</label>${game.aLineup ? game.aLineup.map(formatPlayerBlock).join('') : 'N/A'}</div></div><div style="margin-top:15px; text-align:center; background:var(--green); color:#000; padding:10px; border-radius:6px; font-weight:900;">WINNER: ${game.winner} ${game.hSets !== undefined ? `(${game.hSets}-${game.aSets})` : ''}</div>`;
+        histState.level = 'details';
+    }
+    function historyBack() { if(histState.level === 'details') renderHistoryGames(histState.matchKey); else if(histState.level === 'games') renderHistoryMatches(); else showStep('draw'); }
+    
+    function initStatRefs(team, pName, gender, div) {
+        if (!pointsTally[team]) pointsTally[team] = { mp:0, bye:0, win:0, lose:0, draw:0, for:0, ag:0, diff:0, pts:0, status: 'active' };
+        if (!playerStats[gender][pName]) {
+            playerStats[gender][pName] = { div: div, team: team };
+            ['Singles', 'Doubles', 'Trebles', 'Quad', 'Team', 'Overall'].forEach(cat => { 
+                playerStats[gender][pName][cat] = { mp:0, w:0, l:0, s100:0, s140:0, s180:0, hc:0, best:99, totalPointsScored:0, totalDartsThrown:0, mvpTotal:0, hs180Count: 0 }; 
+            });
+        }
+    }
+
+    function buildSlots() {
+        const count = document.getElementById('gameCount').value, cont = document.getElementById('slotContainer'); if(!cont) return; cont.innerHTML = "";
+        const fmt = [{t:"Quad Open", p:4, l:1, s:1, sc:801}, {t:"Men Double", p:2, l:3, s:1, sc:601}, {t:"Mix Double", p:2, l:3, s:1, sc:601}, {t:"Female Double", p:2, l:3, s:1, sc:601}, {t:"Mix Quad", p:4, l:1, s:1, sc:801}, {t:"Men Single", p:1, l:3, s:1, sc:501}, {t:"Men Single", p:1, l:3, s:1, sc:501}, {t:"Female Single", p:1, l:3, s:1, sc:501}, {t:"Open Single", p:1, l:3, s:1, sc:501}, {t:"Open Single", p:1, l:3, s:1, sc:501}, {t:"Open Single", p:1, l:3, s:1, sc:501}];
+        for(let i=0; i<count; i++){
+            let d = fmt[i] || {t:"Open Single", p:1, l:3, s:1, sc:501};
+            cont.innerHTML += `<div class="fixture-row" style="display:block;"><label>Game #${i+1}</label><input id="gn-${i}" value="${d.t}"><div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:5px; margin-top:5px;"><div><label>P</label><input type="number" id="gp-${i}" value="${d.p}"></div><div><label>SC</label><input type="number" id="gv-${i}" value="${d.sc}"></div><div><label>L</label><input type="number" id="gl-${i}" value="${d.l}"></div><div><label>S</label><input type="number" id="gs-${i}" value="${d.s}"></div></div></div>`;
+        }
+    }
+    
+    function readExcel() {
+        const file = document.getElementById('excelFile').files[0]; if(!file) return;
+        const reader = new FileReader(); reader.onload = (e) => {
+            const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type: 'array'}).Sheets[XLSX.read(new Uint8Array(e.target.result), {type: 'array'}).SheetNames[0]], {header: "A"});
+            rows.slice(1).forEach(r => {
+                let d = r.A || "PREMIER", p = String(r.B || ""), t = r.C || "Team", g = r.D || "M";
+                if(!globalData.divs[d]) globalData.divs[d] = {}; if(!globalData.divs[d][t]) globalData.divs[d][t] = [];
+                globalData.divs[d][t].push({name: p, gender: g, initials: p.split(' ').map(x=>x[0]).join('').toUpperCase()}); initStatRefs(t, p, g, d);
+            });
+            document.getElementById('importFeedback').innerText = "ROSTER LOADED"; saveData();
+        }; reader.readAsArrayBuffer(file);
+    }
+    
+    function openTeamManager(div, team) { activeTeam = { div, name: team }; document.getElementById('modalTeamName').innerText = team; renderModalPlayers(); document.getElementById('modalOverlay').classList.remove('hidden'); document.getElementById('playerModal').classList.remove('hidden'); }
+    function renderModalPlayers() { const list = document.getElementById('modalPlayerList'); list.innerHTML = ""; globalData.divs[activeTeam.div][activeTeam.name].forEach((p, i) => { list.innerHTML += `<div style="padding:8px; background:var(--bg); border:1px solid var(--border); margin-top:4px; display:flex; justify-content:space-between; align-items:center;"><span>${p.name} (${p.gender})</span><button class="btn-red" onclick="deletePlayer(${i})">X</button></div>`; }); }
+    function addManualPlayer() { let n = document.getElementById('manualPName').value, g = document.getElementById('manualPGen').value; if(!n) return; globalData.divs[activeTeam.div][activeTeam.name].push({name: n, gender: g, initials: n.split(' ').map(x=>x[0]).join('').toUpperCase()}); initStatRefs(activeTeam.name, n, g, activeTeam.div); document.getElementById('manualPName').value = ""; renderModalPlayers(); saveData(); }
+    function deletePlayer(i) { globalData.divs[activeTeam.div][activeTeam.name].splice(i, 1); renderModalPlayers(); saveData(); }
+
+    function openAllot(t1, t2, div) {
+        activeDiv = div; showStep('allot'); document.getElementById('allotTitle').innerText = t1 + " VS " + t2;
+        const cont = document.getElementById('allotRows'); cont.innerHTML = ""; const maxG = parseInt(document.getElementById('maxPlayerGames').value), count = document.getElementById('gameCount').value, matchKey = t1 + t2;
+        
+        // --- RESET LOGIC ---
+        // If this match has no score recorded yet, it means it's just starting.
+        // We reset the player usage so everyone starts at 0 for THIS specific match.
+        if(!matchScores[matchKey] || (matchScores[matchKey].h === 0 && matchScores[matchKey].a === 0 && !matchScores[matchKey].pointsAwarded)) {
+            matchScores[matchKey] = {h:0, a:0, pointsAwarded: false};
+            playerUsage = {}; 
+        }
+
+        const getOpt = (tm, slotKey) => { 
+            if(!globalData.divs[div][tm]) return '<option value="">Team Data Missing</option>'; 
+            let selectedName = allottedPlayers[slotKey] || ""; 
+            return `<option value="">Player</option>` + globalData.divs[div][tm].map(p => { 
+                let used = playerUsage[p.name] || 0; 
+                let isSelected = p.name === selectedName; 
+                return `<option value="${p.name}" data-init="${p.initials}" ${isSelected?'selected':''} ${used >= maxG && !isSelected ? 'disabled' : ''}>${p.name} (${used}/${maxG})</option>`; 
+            }).join(''); 
+        };
+
+        for(let i=0; i<count; i++) {
+            let gn = document.getElementById(`gn-${i}`).value, sc = document.getElementById(`gv-${i}`).value, pc = document.getElementById(`gp-${i}`).value, legs = document.getElementById(`gl-${i}`).value, sets = document.getElementById(`gs-${i}`).value;
+            let status = lockedGames[i+t1+t2]; let locked = status !== undefined; let selects = "";
+            for(let j=0; j<pc; j++) { let hSlot = `h-${i}-${j}-${matchKey}`, aSlot = `a-${i}-${j}-${matchKey}`; selects += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:5px;"><select id="${hSlot}" ${locked?'disabled':''}>${getOpt(t1, hSlot)}</select><select id="${aSlot}" ${locked?'disabled':''}>${getOpt(t2, aSlot)}</select></div>`; }
+            let gameResult = ""; if(locked) { let res = matchArchive[t1 + " vs " + t2]?.find(g => g.gameName === gn); if(res && res.hSets !== undefined) gameResult = ` [${res.hSets}-${res.aSets}]`; else if(res) gameResult = " [DONE]"; }
+            cont.innerHTML += `<div id="slot-box-${i}" style="background:#000; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid ${locked?'var(--green)':'#222'};"><div style="display:flex; justify-content:space-between;"><b style="${locked?'color:var(--green)':''}">${gn}${gameResult}</b>${locked ? `<button class="btn-grey" style="padding:2px 8px; font-size:0.6rem;" onclick="unlockSlot(${i}, '${t1}', '${t2}')">EDIT</button>` : ''}</div>${selects}<div style="display:flex; gap:10px; margin-top:10px;"><button id="conf-btn-${i}" class="btn-yellow" style="flex:2" ${locked?'disabled':''} onclick="validateAllot('${t1}','${t2}',${i},${sc},'${gn}',${pc},${legs},${sets})">CONFIRM</button><button id="ff-btn-${i}" class="btn-red" style="flex:1" ${locked?'disabled':''} onclick="forfeitIndividualGame(${i},'${t1}','${t2}')">FF</button></div></div>`;
+        }
+    }
+
+    function unlockSlot(idx, t1, t2) { if(!confirm("Unlock this game for editing?")) return; delete lockedGames[idx + t1 + t2]; openAllot(t1, t2, activeDiv); }
+    function validateAllot(t1, t2, idx, sc, gn, pc, legs, sets) {
+        let hI = [], aI = []; for(let j=0; j<pc; j++) { let hSlotId = `h-${idx}-${j}-${t1+t2}`, aSlotId = `a-${idx}-${j}-${t1+t2}`; let hs = document.getElementById(hSlotId), as = document.getElementById(aSlotId); if(!hs.value || !as.value) return alert("Assign Players"); hI.push({name: hs.value, initials: hs.options[hs.selectedIndex].dataset.init}); aI.push({name: as.value, initials: as.options[as.selectedIndex].dataset.init}); allottedPlayers[hSlotId] = hs.value; allottedPlayers[aSlotId] = as.value; }
+        cur = { h:hI, a:aI, hs:sc, as:sc, sSc:sc, hSets:0, aSets:0, hLegs:0, aLegs:0, turn:'h', hIdx:0, aIdx:0, maxLegs:legs, maxSets:sets, gameIdx:idx+t1+t2, t1Name:t1, t2Name:t2, gn: gn, hTeamDarts:0, aTeamDarts:0 };
+        historyLog = { h: [], a: [] }; 
+        gameTracker = { h: {}, a: {} }; [...hI, ...aI].forEach(p => gameTracker[cur.h.some(x=>x.name===p.name)?'h':'a'][p.name] = { s100:0, s140:0, s180:0, hs:undefined, hsc:0, hc:0, hasThrown: false, totalPointsScored:0, totalDartsThrown:0, hs180Count: 0 });
+        document.getElementById('hTeamName').innerText = t1; document.getElementById('aTeamName').innerText = t2; historyStack = []; setStarter('h'); showStep('scorepad'); saveData();
+    }
+
+    function setStarter(s) { cur.turn = s; updateSP(); }
+    function k(v) { let d = document.getElementById('padDisplay'); if(d.innerText.length < 3) { let n = d.innerText + v; if(parseInt(n) > 180) return alert("Max 180"); d.innerText = n; } }
+    
+    function checkLeg() {
+        let winL = Math.ceil(cur.maxLegs/2); 
+        if(cur.hLegs >= winL || cur.aLegs >= winL || (cur.maxLegs == 1)) {
+            cur.turn==='h'?cur.hSets++:cur.aSets++; 
+            cur.hLegs = 0; 
+            cur.aLegs = 0; 
+            if(cur.hSets >= Math.ceil(cur.maxSets/2) || cur.aSets >= Math.ceil(cur.maxSets/2) || cur.maxSets == 1) {
+                const hWin = cur.hSets > cur.aSets;
+                const mKey = cur.t1Name + cur.t2Name;
+                hWin ? matchScores[mKey].h++ : matchScores[mKey].a++;
+                if(!matchArchive[cur.t1Name + " vs " + cur.t2Name]) matchArchive[cur.t1Name + " vs " + cur.t2Name] = [];
+                matchArchive[cur.t1Name + " vs " + cur.t2Name].push({ gameName: cur.gn, winner: hWin ? cur.t1Name : cur.t2Name, hSets: cur.hSets, aSets: cur.aSets, hLineup: cur.h.map(p => ({ name: p.name, ...gameTracker.h[p.name] })), aLineup: cur.a.map(p => ({ name: p.name, ...gameTracker.a[p.name] })) });
+                
+                // --- INCREMENT USAGE HERE ---
+                // When a game finishes, we mark these players as having played +1 game for this match.
+                [...cur.h, ...cur.a].forEach(player => {
+                    playerUsage[player.name] = (playerUsage[player.name] || 0) + 1;
+                });
+
+                if(!document.getElementById('fDisableStats').checked) updateFinalStats(hWin);
+                lockedGames[cur.gameIdx] = hWin ? "H_Win" : "A_Win";
+                saveData();
+
+                if(activeFinalMatch) {
+                    let winner = cur.hSets > cur.aSets ? cur.t1Name : cur.t2Name, { r, m } = activeFinalMatch;
+                    document.getElementById(`r${r}m${m}${winner === cur.t1Name ? 'h' : 'a'}`).classList.add('f-winner');
+                    let nextEl = document.getElementById(`r${r+1}m${Math.floor(m/2)}${m%2===0?'h':'a'}`);
+                    if(nextEl) nextEl.innerText = winner;
+                    activeFinalMatch = null;
+                    showStep('finals-bracket');
+                } else {
+                    openAllot(cur.t1Name, cur.t2Name, activeDiv);
+                }
+            } else resetLeg();
+        } else resetLeg();
+        saveData();
+    }
+
+    function resetLeg() { 
+        cur.hs = cur.as = cur.sSc; 
+        let currentLegNum = cur.hLegs + cur.aLegs + 1; 
+        cur.turn = (currentLegNum % 2 === 0) ? 'a' : 'h'; 
+        cur.hIdx=0; cur.aIdx=0; cur.hTeamDarts = 0; cur.aTeamDarts = 0; 
+        historyLog = { h: [], a: [] }; 
+        Object.keys(gameTracker.h).forEach(k => gameTracker.h[k].hasThrown = false); 
+        Object.keys(gameTracker.a).forEach(k => gameTracker.a[k].hasThrown = false); 
+        updateSP(); 
+    }
+
+    function nextT() { if(cur.turn==='h'){cur.hIdx=(cur.hIdx+1)%cur.h.length; cur.turn='a';}else{cur.aIdx=(cur.aIdx+1)%cur.a.length; cur.turn='h';} updateSP(); }
+    function undo() { if(historyStack.length > 0) { let prev = historyStack.pop(); cur = prev.cur; historyLog = prev.historyLog; updateSP(); clr(); } }
+    function clr() { document.getElementById('padDisplay').innerText = ""; }
+    function closeDartPopup() { document.getElementById('modalOverlay').classList.add('hidden'); document.getElementById('dartPopup').classList.add('hidden'); }
+    
+    function updateSP() {
+        document.getElementById('hScore').innerText = cur.hs; 
+        document.getElementById('aScore').innerText = cur.as; 
+        document.getElementById('hLegs').innerText = cur.hLegs; 
+        document.getElementById('aLegs').innerText = cur.aLegs; 
+        document.getElementById('hSets').innerText = cur.hSets; 
+        document.getElementById('aSets').innerText = cur.aSets; 
+        document.getElementById('hInitGrid').innerHTML = cur.h.map((p,i)=>`<div class="initial-box ${cur.turn==='h'&&cur.hIdx===i?'active-p':''}">${p.initials}</div>`).join(''); 
+        document.getElementById('aInitGrid').innerHTML = cur.a.map((p,i)=>`<div class="initial-box ${cur.turn==='a'&&cur.aIdx===i?'active-p':''}">${p.initials}</div>`).join(''); 
+        document.getElementById('hBox').classList.toggle('active', cur.turn==='h'); 
+        document.getElementById('aBox').classList.toggle('active', cur.turn==='a'); 
+        document.getElementById('spGameTitle').innerText = `${cur.gn.toUpperCase()} (${matchScores[cur.t1Name+cur.t2Name]?.h || 0} - ${matchScores[cur.t1Name+cur.t2Name]?.a || 0})`; 
+        document.getElementById('hStartBtn').classList.toggle('active-start', cur.turn === 'h'); 
+        document.getElementById('aStartBtn').classList.toggle('active-start', cur.turn === 'a');
+        document.getElementById('hSideHist').innerHTML = historyLog.h.map(v => `<div class="hist-val">${v}</div>`).join('');
+        document.getElementById('aSideHist').innerHTML = historyLog.a.map(v => `<div class="hist-val">${v}</div>`).join('');
+    }
+
+    async function setAccessRole() {
+        const email = prompt("Enter Subscriber Email:");
+        const password = prompt("Enter Password:");
+        if (!email || !password) return;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
+        if (error) { alert("Cloud Login Failed: " + error.message); } 
+        else { currentUserRole = 'Admin'; document.getElementById('displayRole').innerText = 'Subscriber'; alert("Verified! Cloud Sync is now UNLOCKED."); }
+    }
+
+    async function syncLocalDataToCloud() { 
+        if (currentUserRole !== 'Admin') return alert("Admin access required to sync to cloud."); 
+        const bundle = JSON.parse(localStorage.getItem('dartsMasterSave')); 
+        if (!bundle) return alert("No local data found to sync."); 
+        try { 
+            const { error } = await supabaseClient.from('master_sync').upsert({ id: 'current_tournament', data_bundle: bundle, updated_at: new Date() }); 
+            if (error) alert("Sync Error: " + error.message); 
+            else alert("🚀 CLOUD SYNC SUCCESS! Your data is now safe online."); 
+        } catch (err) { alert("Connection failed. Check internet."); } 
+    }
+
+    async function recoverDataFromCloud() { 
+        if (currentUserRole !== 'Admin') return alert("Admin access required to recover data."); 
+        if (!confirm("This will OVERWRITE all local data with the Cloud Backup. Proceed?")) return; 
+        try { 
+            const { data, error } = await supabaseClient.from('master_sync').select('data_bundle').eq('id', 'current_tournament').single(); 
+            if (error) throw error; 
+            if (data && data.data_bundle) { 
+                localStorage.setItem('dartsMasterSave', JSON.stringify(data.data_bundle)); 
+                alert("✅ RECOVERY SUCCESS! Application will reload."); 
+                location.reload(); 
+            } else { alert("No cloud data found."); }
+        } catch (err) { alert("Recovery Failed: " + err.message); } 
+    }
+
+    function closePlayerModal() { 
+        document.getElementById('playerModal').classList.add('hidden'); 
+        document.getElementById('modalOverlay').classList.add('hidden'); 
+    }
+</script>
+</body>
+</html>
